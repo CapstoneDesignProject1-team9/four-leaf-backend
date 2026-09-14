@@ -1,0 +1,61 @@
+# =============================================================
+# [four-leaf-backend] CI Pipeline
+# 경로: .github/workflows/ci.yml
+#
+# 트리거: PR 생성/업데이트, main 브랜치 push
+# 단계:
+#   1. JDK 21 설치
+#   2. Gradle 빌드 (jar 생성)
+#   3. 단위 테스트 실행
+#   4. 테스트 리포트 업로드
+# =============================================================
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Backend CI (Gradle Build & Test)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon
+        env:
+          # 테스트용 인메모리 DB 사용 가정 (application-test.yml 설정 필요)
+          SPRING_PROFILES_ACTIVE: test
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ github.sha }}
+          path: build/reports/tests/test/
+          retention-days: 7
