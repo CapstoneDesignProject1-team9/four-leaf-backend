@@ -1,0 +1,26 @@
+# Dockerfile.dev — 로컬 개발용 (Spring Boot with DevTools)
+# docker-compose.dev.yml에서 사용
+# 소스 변경 시 수동으로 재빌드 필요: docker compose restart backend
+
+FROM eclipse-temurin:21-jdk-alpine
+
+WORKDIR /app
+
+# Maven 설치 (빌드용)
+RUN apk add --no-cache maven
+
+# pom.xml 먼저 복사 → 의존성 캐시
+COPY pom.xml ./
+RUN mvn dependency:go-offline -B
+
+# 소스 복사 & 빌드
+COPY src ./src
+RUN mvn package -DskipTests -B
+
+EXPOSE 8080
+
+ENV SPRING_PROFILES_ACTIVE=dev
+
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-jar", "target/*.jar"]

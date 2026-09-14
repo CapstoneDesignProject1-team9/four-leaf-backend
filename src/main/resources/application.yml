@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: four-leaf-backend
+
+server:
+  port: 8080
+
+# Actuator 헬스체크 엔드포인트 노출 (CI/CD 헬스체크용)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+---
+# ─────────────────────────────────────────
+# 개발 프로파일 (spring.profiles.active=dev)
+# ─────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://db:5432/fourleaf_dev
+    username: fourleaf
+    password: devpassword
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+---
+# ─────────────────────────────────────────
+# 프로덕션 프로파일 (spring.profiles.active=prod)
+# ─────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+---
+# ─────────────────────────────────────────
+# 테스트 프로파일 (spring.profiles.active=test)
+# ─────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect

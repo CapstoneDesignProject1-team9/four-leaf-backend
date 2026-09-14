@@ -3,9 +3,11 @@
 # 경로: .github/workflows/trigger-cd.yml
 #
 # main 브랜치 push + CI 통과 시:
-#   1. Gradle 빌드 (jar)
+#   1. Maven 빌드 & 테스트 (CI)
 #   2. Docker 이미지 빌드 & AWS ECR push
 #   3. four-leaf-infra 레포에 deploy-backend 이벤트 dispatch
+#
+# 조직: CapstoneDesignProject1-team9
 # =============================================================
 
 name: Build & Trigger CD
@@ -17,47 +19,30 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: four-leaf-backend
-  JAVA_VERSION: '21'
 
 jobs:
   # ────────────────────────────────────────
-  # Step 1: CI (Gradle 빌드 & 테스트)
+  # Step 1: CI (Maven 빌드 & 테스트)
   # ────────────────────────────────────────
   ci:
-    name: CI — Gradle Build & Test
+    name: CI — Maven Build & Test
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ env.JAVA_VERSION }}
+          java-version: '21'
           distribution: temurin
-          cache: gradle
+          cache: maven
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon
+      - name: Build and test
+        run: mvn verify -B
         env:
           SPRING_PROFILES_ACTIVE: test
-
-      - name: Run tests
-        run: ./gradlew test --no-daemon
-        env:
-          SPRING_PROFILES_ACTIVE: test
-
-      - name: Upload test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-report-${{ github.sha }}
-          path: build/reports/tests/test/
-          retention-days: 7
 
   # ────────────────────────────────────────
   # Step 2: Docker 빌드 & ECR push & Infra dispatch
@@ -71,18 +56,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
+      - name: Set up JDK 21 (JAR 빌드용)
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ env.JAVA_VERSION }}
+          java-version: '21'
           distribution: temurin
-          cache: gradle
+          cache: maven
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build JAR (테스트 제외, 속도 최적화)
-        run: ./gradlew build -x test --no-daemon
+      - name: Package JAR (테스트 제외, 속도 최적화)
+        run: mvn package -DskipTests -B
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

@@ -5,8 +5,8 @@
 # 트리거: PR 생성/업데이트, main 브랜치 push
 # 단계:
 #   1. JDK 21 설치
-#   2. Gradle 빌드 (jar 생성)
-#   3. 단위 테스트 실행
+#   2. Maven 빌드
+#   3. 단위 테스트 실행 (test 프로파일 / H2 인메모리 DB)
 #   4. 테스트 리포트 업로드
 # =============================================================
 
@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   ci:
-    name: Backend CI (Gradle Build & Test)
+    name: Backend CI (Maven Build & Test)
     runs-on: ubuntu-latest
 
     steps:
@@ -36,26 +36,23 @@ jobs:
         with:
           java-version: '21'
           distribution: temurin
-          cache: gradle
+          cache: maven   # ~/.m2 캐시
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Build with Maven
+        run: mvn compile -B
 
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon
-        env:
-          # 테스트용 인메모리 DB 사용 가정 (application-test.yml 설정 필요)
-          SPRING_PROFILES_ACTIVE: test
-
-      - name: Run tests
-        run: ./gradlew test --no-daemon
+      - name: Run tests (H2 인메모리 DB)
+        run: mvn test -B
         env:
           SPRING_PROFILES_ACTIVE: test
+
+      - name: Package JAR (테스트 제외)
+        run: mvn package -DskipTests -B
 
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-report-${{ github.sha }}
-          path: build/reports/tests/test/
+          path: target/surefire-reports/
           retention-days: 7
