@@ -5,22 +5,18 @@ FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
+# Maven 설치
+RUN apk add --no-cache maven
+
 # pom.xml 먼저 복사 → 의존성 캐시 레이어 활용
 COPY pom.xml ./
-# Maven Wrapper 사용 (없으면 mvn 직접 사용)
-COPY .mvn/ .mvn/ 2>/dev/null || true
-COPY mvnw* ./
 
 # 의존성 다운로드 (소스 변경 시 재다운로드 방지)
-RUN chmod +x mvnw 2>/dev/null || true && \
-    (./mvnw dependency:go-offline -B 2>/dev/null || \
-     mvn dependency:go-offline -B 2>/dev/null || \
-     true)
+RUN mvn dependency:go-offline -B
 
 # 소스 복사 & 빌드 (테스트 제외)
 COPY src ./src
-RUN (./mvnw package -DskipTests -B 2>/dev/null || \
-     mvn package -DskipTests -B) && \
+RUN mvn package -DskipTests -B && \
     ls target/*.jar
 
 # ─────────────────────────────────────────
