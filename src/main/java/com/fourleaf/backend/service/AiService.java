@@ -1,5 +1,8 @@
 package com.fourleaf.backend.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import com.fourleaf.backend.dto.ChatRequest;
 import com.fourleaf.backend.dto.ChatResponse;
 import org.slf4j.Logger;
@@ -29,10 +32,17 @@ public class AiService {
         log.info("AI 채팅 요청 전송: message='{}', sessionId='{}'", request.message(), request.sessionId());
 
         try {
+            Map<String, Object> aiRequestBody = new LinkedHashMap<>();
+            aiRequestBody.put("message", request.message());
+
+            if (request.sessionId() != null && !request.sessionId().isBlank()) {
+                aiRequestBody.put("session_id", request.sessionId());
+            }
+
             ChatResponse response = aiRestClient.post()
                     .uri("/api/v1/tutor/chat")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(request)
+                    .body(aiRequestBody)
                     .retrieve()
                     .body(ChatResponse.class);
 
