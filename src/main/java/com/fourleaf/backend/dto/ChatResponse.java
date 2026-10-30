@@ -7,9 +7,15 @@ public record ChatResponse(
         String answer,
         List<SourceDocumentResponse> sources,
         @JsonProperty("session_id")
-        String sessionId
+        String sessionId,
+        @JsonProperty("course_name")
+        String courseName
 ) {
     public ChatResponse(String answer) {
-        this(answer, List.of(), null);
+        this(answer, List.of(), null, null);
+    }
+
+    public ChatResponse(String answer, List<SourceDocumentResponse> sources, String sessionId) {
+        this(answer, sources, sessionId, null);
     }
 }

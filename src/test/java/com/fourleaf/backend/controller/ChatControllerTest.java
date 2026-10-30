@@ -48,6 +48,23 @@ class ChatControllerTest {
     }
 
     @Test
+    @DisplayName("과목명이 포함된 정상 질문 시 200 OK와 AI 답변을 반환한다")
+    void chat_withCourseName_success() throws Exception {
+        // given
+        ChatRequest request = new ChatRequest("중간고사 일정 알려줘", "session-123", "컴퓨터구조");
+        ChatResponse expectedResponse = new ChatResponse("중간고사는 4월 20일입니다.");
+
+        given(aiService.chat(any(ChatRequest.class))).willReturn(expectedResponse);
+
+        // when & then
+        mockMvc.perform(post("/api/v1/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.answer").value("중간고사는 4월 20일입니다."));
+    }
+
+    @Test
     @DisplayName("빈 질문을 보내면 400 Bad Request를 반환한다")
     void chat_emptyMessage_badRequest() throws Exception {
         // given (빈 메시지)
