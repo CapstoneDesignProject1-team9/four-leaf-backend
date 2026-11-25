@@ -13,6 +13,7 @@ import org.springframework.web.client.RestClient;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class AiServiceTest {
 
@@ -50,5 +51,26 @@ class AiServiceTest {
 
         assertThat(response.answer()).startsWith("현재 AI 서비스 점검 중");
         server.verify();
+    }
+
+    @Test
+    @DisplayName("AI가 되물으면 선택지(options)를 그대로 전달한다")
+    void chat_clarification_passesOptions() {
+        server.expect(requestTo("http://ai/api/v1/tutor/chat"))
+                .andRespond(withSuccess(
+                        "{\"answer\":\"어느 학기 기준으로 알려드릴까요?\",\"sources\":[],"
+                                + "\"options\":[\"2026학년도 1학기\",\"2025학년도 2학기\"]}",
+                        MediaType.APPLICATION_JSON));
+
+        ChatResponse response = aiService.chat(new ChatRequest("수강신청 언제야?", "s1", null));
+
+        assertThat(response.options()).containsExactly("2026학년도 1학기", "2025학년도 2학기");
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("options가 없는 응답은 빈 목록으로 채운다")
+    void chat_withoutOptions_returnsEmptyList() {
+        assertThat(new ChatResponse("답").options()).isEmpty();
     }
 }
